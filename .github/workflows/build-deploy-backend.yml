@@ -132,7 +132,7 @@ jobs:
   assert-artifact:
     name: Assert artifacts
     if: ${{ github.ref == 'refs/heads/main' && always() }}
-    needs: [build, pull-request, deploy-stage]
+    needs: [build, pull-request, deploy-stage, semver-tag]
     runs-on: ubuntu-latest
     steps:
       - name: Setup Kosli cli
