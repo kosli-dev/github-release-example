@@ -16,7 +16,7 @@ on:
 
 env:
   # kosli commands picks up org, flow, trail and api-token from these environment variables
-  KOSLI_ORG: kosli
+  KOSLI_ORG: kosli-public
   KOSLI_FLOW: github-release-example-backend
   KOSLI_TRAIL: ${{ github.sha }}
   KOSLI_API_TOKEN: "${{ secrets.KOSLI_PUBLIC_API_TOKEN }}"
