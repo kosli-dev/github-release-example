@@ -41,7 +41,7 @@ jobs:
         run: echo "KOSLI_TRAIL=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
 
       - name: Begin trail
-        if: ${{ github.ref == 'refs/heads/main' }}
+        if: ${{ github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/') }}
         uses: ./.github/actions/kosli-begin-trail
         with:
           kosli-trail: ${{ env.KOSLI_TRAIL }}
@@ -69,7 +69,7 @@ jobs:
 
       - name: Attest artifact
         id: calculate_fingerprint
-        if: ${{ github.ref == 'refs/heads/main' }}
+        if: ${{ github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/') }}
         uses: ./.github/actions/kosli-attest-dir-artifact
         with:
           kosli-artifact-template-name: backend
@@ -78,7 +78,7 @@ jobs:
 
   pull-request:
     name: Pull-request
-    if: ${{ github.ref == 'refs/heads/main' }}
+    if: ${{ github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/') }}
     needs: [setup]
     runs-on: ubuntu-latest
     steps:
@@ -131,7 +131,7 @@ jobs:
 
   assert-artifact:
     name: Assert artifacts
-    if: ${{ github.ref == 'refs/heads/main' && always() }}
+    if: ${{ (github.event_name != 'workflow_dispatch' && needs.semver-tag.outputs.release-to-prod == 'true') }}
     needs: [build, pull-request, deploy-stage, semver-tag]
     runs-on: ubuntu-latest
     steps:
