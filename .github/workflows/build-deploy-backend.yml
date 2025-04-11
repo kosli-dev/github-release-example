@@ -152,6 +152,6 @@ jobs:
     uses: ./.github/workflows/_deploy.yml
     with:
         environment: Production
-        version: ${{ needs.build.outputs.imagetag }}
+        version: ${{ needs.build.outputs.image-version }}
         resource: prod-backend
     secrets: inherit
