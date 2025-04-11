@@ -1,0 +1,116 @@
+name: Build and Deploy Backend
+
+on:
+  push:
+    branches:
+      - main
+    tags: ["v*.*.*"]
+
+  workflow_dispatch:
+    inputs:
+      environment:
+        type: choice
+        options: [Development, Stage]
+        description: "Target environment"
+        required: true
+
+env:
+  # kosli commands picks up org, flow, trail and api-token from these environment variables
+  KOSLI_ORG: kosli
+  KOSLI_FLOW: github-release-example-backend
+  KOSLI_TRAIL: ${{ github.sha }}
+  KOSLI_API_TOKEN: "${{ secrets.KOSLI_PUBLIC_API_TOKEN }}"
+  KOSLI_CLI_VERSION: "${{ vars.KOSLI_CLI_VERSION }}"
+  KOSLI_TEMPLATE_FILE: "kosli-flow-templates/backend-template.yml"
+  KOSLI_ENV_PROD: "github-release-example-prod"
+
+  # KOSLI_DRY_RUN: true
+  JIRA_BASE_URL: "${{ vars.JIRA_BASE_URL }}"
+  JIRA_USERNAME: ${{ secrets.KOSLI_JIRA_USERNAME }}
+  JIRA_API_TOKEN: ${{ secrets.KOSLI_JIRA_API_TOKEN }}
+
+jobs:
+  setup:
+    name: Begin trail
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set KOSLI_TRAIL to tag if available
+        if: startsWith(github.ref, 'refs/tags/')
+        run: echo "KOSLI_TRAIL=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+
+      - name: Begin trail
+        if: ${{ github.ref == 'refs/heads/main' }}
+        uses: ./.github/actions/kosli-begin-trail
+        with:
+          kosli-trail: ${{ env.KOSLI_TRAIL }}
+          kosli-template-file: ${{ env.KOSLI_TEMPLATE_FILE }}
+
+
+  build:
+    name: Build backend
+    needs: [setup]
+    runs-on: ubuntu-latest
+    outputs:
+      fingerprint: ${{ steps.calculate_fingerprint.outputs.fingerprint }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build backend
+        run: echo "Here we could do some proper build"
+
+      - name: Extract short SHA
+        run: echo "SHORT_SHA=${GITHUB_SHA:0:7}" >> $GITHUB_ENV
+
+      - name: Attest artifact
+        id: calculate_fingerprint
+        if: ${{ github.ref == 'refs/heads/main' }}
+        uses: ./.github/actions/kosli-attest-dir-artifact
+        with:
+          kosli-artifact-template-name: backend
+          artifact-name: backend:${{ env.SHORT_SHA }}
+          artifact-dir: apps/backend
+
+  pull-request:
+    name: Pull-request
+    if: ${{ github.ref == 'refs/heads/main' }}
+    needs: [setup]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Attest GitHub pull-request
+        uses: ./.github/actions/kosli-attest-pullrequest
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          assert: true
+
+  deploy-dev:
+    name: Deploy backend development
+    if: ${{ github.ref == 'refs/heads/main' }}
+    needs: [build]
+    environment: Development
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to development
+        run: echo "Here we could do a proper deploy to Development environment"
+
+  assert-artifacts:
+    name: Assert artifacts
+    if: ${{ github.ref == 'refs/heads/main' && always() }}
+    needs: [build, pull-request]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup Kosli cli
+        uses: kosli-dev/setup-cli-action@v2
+        with:
+          version:
+            ${{ vars.KOSLI_CLI_VERSION }}
+
+      - name: Assert Artifacts
+        run: |
+          set -x
+          EXIT_CODE=0
+          kosli assert artifact --fingerprint ${{ needs.build.outputs.fingerprint }} || EXIT_CODE=1
+          exit ${EXIT_CODE}

@@ -1,0 +1,51 @@
+name: Setup kosli
+
+on:
+  workflow_dispatch:
+
+env:
+  # kosli commands picks up org, flow, trail and api-token from these environment variables
+  KOSLI_ORG: "${{ vars.KOSLI_ORG }}"
+  KOSLI_API_TOKEN: "${{ secrets.KOSLI_PUBLIC_API_TOKEN }}"
+  KOSLI_CLI_VERSION: "${{ vars.KOSLI_CLI_VERSION }}"
+  # KOSLI_DRY_RUN: true
+
+jobs:
+  create-flows:
+    name: Create kosli flows and environments
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Kosli cli
+        uses: kosli-dev/setup-cli-action@v2
+        with:
+          version:
+            ${{ vars.KOSLI_CLI_VERSION }}
+
+      ### flows ###
+      - name: Create github-release-example-backend flow
+        run:
+          kosli create flow github-release-example-backend
+            --description "Track veracode example attestations for backend"
+            --template-file kosli-flow-templates/backend-template.yml
+
+
+#      ### Custom attestation types ###
+#      - name: Create veracode-scan-executed attestation type
+#        run:
+#          kosli create attestation-type veracode-scan-executed
+#              --description "Attest that veracode scan was executed"
+#              --schema custom-attestation-types/veracode-scan-schema.json
+#              --jq '.scan_status == "SUCCESS"'
+#
+#      - name: Create veracode-scan-vulnerability-summary attestation type
+#        run:
+#          kosli create attestation-type veracode-scan-vulnerability-summary
+#              --description "Attest that veracode scan has no vulnerabilities"
+#              --schema custom-attestation-types/veracode-scan-schema.json
+#              --jq '.scan_status == "SUCCESS"'
+#              --jq 'all(.severity_summary[]; . == 0)'
+#              --jq 'all(.gob_summary[]; . == 0)'

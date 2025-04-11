@@ -1,0 +1,31 @@
+name: Deploy Environment
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+        type: string
+        description: "Target environment (Development/Stage/Production)"
+      version:
+        required: true
+        type: string
+        description: "Version to deploy"
+      resource:
+        required: true
+        type: string
+        description: "Name of the resource to deploy to"
+
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    timeout-minutes: 60
+    concurrency:
+      group: ${{ inputs.environment }}-${{inputs.resource}}
+
+    steps:
+      - name: Deploy to environment
+        run: |
+          echo "Now we deploy to ${{ inputs.environment }}"
