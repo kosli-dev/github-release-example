@@ -33,18 +33,25 @@ jobs:
   setup:
     name: Begin trail
     runs-on: ubuntu-latest
+    outputs:
+      kosli-trail: ${{ steps.set-kosli-trail.outputs.kosli-trail }}
     steps:
       - uses: actions/checkout@v4
 
       - name: Set KOSLI_TRAIL to tag if available
-        if: startsWith(github.ref, 'refs/tags/')
-        run: echo "KOSLI_TRAIL=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+        id: set-kosli-trail
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            echo "kosli-trail=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          else
+            echo "kosli-trail=${GITHUB_SHA}" >> $GITHUB_OUTPUT
+          fi
 
       - name: Begin trail
         if: ${{ github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/') }}
         uses: ./.github/actions/kosli-begin-trail
         with:
-          kosli-trail: ${{ env.KOSLI_TRAIL }}
+          kosli-trail: ${{ steps.set-kosli-trail.outputs.kosli-trail }}
           kosli-template-file: ${{ env.KOSLI_TEMPLATE_FILE }}
 
 
@@ -81,6 +88,8 @@ jobs:
     if: ${{ github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/') }}
     needs: [setup]
     runs-on: ubuntu-latest
+    env:
+      KOSLI_TRAIL: ${{ needs.setup.outputs.kosli-trail }}
     steps:
       - uses: actions/checkout@v4
 
@@ -133,6 +142,8 @@ jobs:
     name: Assert artifacts
     if: ${{ (github.event_name != 'workflow_dispatch' && needs.semver-tag.outputs.release-to-prod == 'true') }}
     needs: [build, pull-request, deploy-stage, semver-tag]
+    env:
+      KOSLI_TRAIL: ${{ needs.setup.outputs.kosli-trail }}
     runs-on: ubuntu-latest
     steps:
       - name: Setup Kosli cli
