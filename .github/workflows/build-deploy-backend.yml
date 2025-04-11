@@ -53,12 +53,16 @@ jobs:
     needs: [setup]
     runs-on: ubuntu-latest
     outputs:
+      image-version: ${{ steps.build-artifact.outputs.image-version }}
       fingerprint: ${{ steps.calculate_fingerprint.outputs.fingerprint }}
     steps:
       - uses: actions/checkout@v4
 
       - name: Build backend
-        run: echo "Here we could do some proper build"
+        id: build-artifact
+        run: |
+          echo "Here we could do some proper build"
+          echo "image-version=${{ env.KOSLI_TRAIL }}" >> $GITHUB_OUTPUT
 
       - name: Extract short SHA
         run: echo "SHORT_SHA=${GITHUB_SHA:0:7}" >> $GITHUB_ENV
@@ -93,7 +97,7 @@ jobs:
     uses: ./.github/workflows/_deploy.yml
     with:
         environment: Development
-        version: xxx
+        version: ${{ needs.build.outputs.image-version }}
         resource: dev-backend
     secrets: inherit
 
@@ -105,25 +109,49 @@ jobs:
     uses: ./.github/workflows/_deploy.yml
     with:
         environment: Stage
-        version: xxx
+        version: ${{ needs.build.outputs.image-version }}
         resource: stage-backend
     secrets: inherit
 
-#  assert-artifacts:
-#    name: Assert artifacts
-#    if: ${{ github.ref == 'refs/heads/main' && always() }}
-#    needs: [build, pull-request]
-#    runs-on: ubuntu-latest
-#    steps:
-#      - name: Setup Kosli cli
-#        uses: kosli-dev/setup-cli-action@v2
-#        with:
-#          version:
-#            ${{ vars.KOSLI_CLI_VERSION }}
-#
-#      - name: Assert Artifacts
-#        run: |
-#          set -x
-#          EXIT_CODE=0
-#          kosli assert artifact --fingerprint ${{ needs.build.outputs.fingerprint }} || EXIT_CODE=1
-#          exit ${EXIT_CODE}
+
+  semver-tag:
+    needs: [build,deploy-stage]
+    name: Check for semver tag
+    runs-on: ubuntu-latest
+    outputs:
+      release-to-prod: ${{ steps.check-tag.outputs.match }}
+    steps:
+      - name: Check Tag
+        id: check-tag
+        run: |
+          if [[ ${{ github.ref }} =~ ^refs/tags/v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "match=true" >> $GITHUB_OUTPUT
+          fi
+
+
+  assert-artifact:
+    name: Assert artifacts
+    if: ${{ github.ref == 'refs/heads/main' && always() }}
+    needs: [build, pull-request, deploy-stage]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup Kosli cli
+        uses: kosli-dev/setup-cli-action@v2
+        with:
+          version:
+            ${{ vars.KOSLI_CLI_VERSION }}
+
+      - name: Assert Artifacts
+        run: |
+          kosli assert artifact --fingerprint ${{ needs.build.outputs.fingerprint }}
+
+  deploy-production:
+    if: ${{ (github.event_name != 'workflow_dispatch' && needs.semver-tag.outputs.release-to-prod == 'true') }}
+    needs: [build,deploy-stage,semver-tag,assert-artifact]
+    name: Deploy to production
+    uses: ./.github/workflows/_deploy.yml
+    with:
+        environment: Production
+        version: ${{ needs.build.outputs.imagetag }}
+        resource: prod-backend
+    secrets: inherit
