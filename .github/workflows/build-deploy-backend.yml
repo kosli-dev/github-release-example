@@ -135,7 +135,7 @@ jobs:
       - name: Get approval actor from audit log
         id: get-approver
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.READ_AUDIT_LOG }}
           OWNER: kosli-dev
           REPO: github-release-example
           WORKFLOW_RUN_ID: ${{ github.run_id }}
