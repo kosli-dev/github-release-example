@@ -141,15 +141,40 @@ jobs:
           WORKFLOW_RUN_ID: ${{ github.run_id }}
         run: |
           API_URL="https://api.github.com/orgs/${OWNER}/audit-log"
+          MAX_PAGES=5
+          PER_PAGE=5
+          APPROVER=""
 
-          curl -s -H "Authorization: Bearer ${GH_TOKEN}" \
-               -H "Accept: application/vnd.github+json" \
-               --get \
-               --data-urlencode "phrase=repo:${OWNER}/${REPO}" \
-               --data-urlencode "phrase=action:workflows.approve_workflow_job" \
-               --data-urlencode "per_page=1" \
-               --data-urlencode "page=1" \
-               "$API_URL" > audit.json
+          for PAGE in $(seq 1 $MAX_PAGES); do
+            echo "Checking page $PAGE..."
+            curl -s -H "Authorization: Bearer ${GH_TOKEN}" \
+              -H "Accept: application/vnd.github+json" \
+              --get \
+              --data-urlencode "phrase=repo:${OWNER}/${REPO}" \
+              --data-urlencode "phrase=action:workflows.approve_workflow_job" \
+              --data-urlencode "per_page=${PER_PAGE}" \
+              --data-urlencode "page=${PAGE}" \
+              "$API_URL" > audit.json
+
+            cat audit.json >> $GITHUB_STEP_SUMMARY
+
+            MATCH=$(jq -r --arg run_id "$WORKFLOW_RUN_ID" '
+              .[] | select(.workflow_run_id == ($run_id | tonumber)) | .actor' audit.json)
+
+            if [[ -n "$MATCH" ]]; then
+              echo "Found matching approval by: $MATCH"
+              APPROVER="$MATCH"
+              break
+            fi
+          done
+
+          if [[ -z "$APPROVER" ]]; then
+            echo "No approval found for workflow_run_id: $WORKFLOW_RUN_ID"
+            exit 1
+          fi
+
+          echo "approver=$APPROVER" >> $GITHUB_OUTPUT
+          echo "### Approval Actor: $APPROVER" >> $GITHUB_STEP_SUMMARY
 
           cat audit.json >> $GITHUB_STEP_SUMMARY
 
