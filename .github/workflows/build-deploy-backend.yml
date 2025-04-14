@@ -111,6 +111,13 @@ jobs:
         resource: dev-backend
     secrets: inherit
 
+  debug1:
+    needs: [deploy-development]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Debug
+        run: |
+          ${{ toJson(github) }} >> $GITHUB_STEP_SUMMARY
 
   deploy-stage:
     if: ${{ github.event_name != 'workflow_dispatch' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'Stage') }}
@@ -123,6 +130,13 @@ jobs:
         resource: stage-backend
     secrets: inherit
 
+  debug2:
+    needs: [deploy-stage]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Debug
+        run: |
+          ${{ toJson(github) }} >> $GITHUB_STEP_SUMMARY
 
   semver-tag:
     needs: [build,deploy-stage]
@@ -167,3 +181,11 @@ jobs:
         version: ${{ needs.build.outputs.image-version }}
         resource: prod-backend
     secrets: inherit
+
+  debug3:
+    needs: [deploy-production]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Debug
+        run: |
+          ${{ toJson(github) }} >> $GITHUB_STEP_SUMMARY
