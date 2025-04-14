@@ -151,15 +151,17 @@ jobs:
                --data-urlencode "page=1" \
                "$API_URL" > audit.json
 
-          APPROVER=$(jq -r --arg run_id "$WORKFLOW_RUN_ID" '
-            map(select(.workflow_run_id | tostring == $run_id))
-            | sort_by(.created_at) 
-            | reverse 
-            | .[0].actor // "unknown"
-          ' audit.json)
+          cat audit.json >> $GITHUB_OUTPUT
 
-          echo "Approver: $APPROVER"
-          echo "approver=$APPROVER" >> $GITHUB_OUTPUT
+#          APPROVER=$(jq -r --arg run_id "$WORKFLOW_RUN_ID" '
+#            map(select(.workflow_run_id | tostring == $run_id))
+#            | sort_by(.created_at)
+#            | reverse
+#            | .[0].actor // "unknown"
+#          ' audit.json)
+#
+#          echo "Approver: $APPROVER"
+#          echo "approver=$APPROVER" >> $GITHUB_OUTPUT
 
 
   semver-tag:
