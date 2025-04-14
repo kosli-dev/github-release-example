@@ -125,6 +125,7 @@ jobs:
 
 
   get-approver-for-stage:
+    needs: deploy-stage
     runs-on: ubuntu-latest
     steps:
       - name: Get workflow run ID
