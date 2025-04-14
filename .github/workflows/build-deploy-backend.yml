@@ -128,17 +128,11 @@ jobs:
     needs: deploy-stage
     runs-on: ubuntu-latest
     steps:
-#      - name: Get workflow run ID
-#        id: get-run-id
-#        run: echo "workflow_run_id=${{ github.run_id }}" >> $GITHUB_ENV
-
       - name: Get approval actor from audit log
-        id: get-approver
         env:
           GH_TOKEN: ${{ secrets.READ_AUDIT_LOG }}
           OWNER: kosli-dev
           REPO: github-release-example
-#          WORKFLOW_RUN_ID: ${{ github.run_id }}
         run: |
           API_URL="https://api.github.com/orgs/${OWNER}/audit-log"
           MAX_PAGES=5
@@ -172,7 +166,7 @@ jobs:
           fi
 
           echo "approver=$APPROVER" >> $GITHUB_OUTPUT
-          echo "### Approval Actor: $APPROVER" >> $GITHUB_STEP_SUMMARY
+          echo "### Approval Actor for stage: $APPROVER" >> $GITHUB_STEP_SUMMARY
 
   semver-tag:
     needs: [build,deploy-stage]
@@ -241,3 +235,47 @@ jobs:
         version: ${{ needs.build.outputs.image-version }}
         resource: prod-backend
     secrets: inherit
+
+  get-approver-for-production:
+    needs: deploy-production
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get approval actor from audit log
+        env:
+          GH_TOKEN: ${{ secrets.READ_AUDIT_LOG }}
+          OWNER: kosli-dev
+          REPO: github-release-example
+        run: |
+          API_URL="https://api.github.com/orgs/${OWNER}/audit-log"
+          MAX_PAGES=5
+          PER_PAGE=5
+          APPROVER=""
+
+          for PAGE in $(seq 1 $MAX_PAGES); do
+            echo "Checking page $PAGE..."
+            curl -s -H "Authorization: Bearer ${GH_TOKEN}" \
+              -H "Accept: application/vnd.github+json" \
+              --get \
+              --data-urlencode "phrase=repo:${OWNER}/${REPO}" \
+              --data-urlencode "phrase=action:workflows.approve_workflow_job" \
+              --data-urlencode "per_page=${PER_PAGE}" \
+              --data-urlencode "page=${PAGE}" \
+              "$API_URL" > audit.json
+
+            MATCH=$(jq -r --arg run_id ${{ github.run_id }} '
+              .[] | select(.workflow_run_id == ($run_id | tonumber)) | .actor' audit.json)
+
+            if [[ -n "$MATCH" ]]; then
+              echo "Found matching approval by: $MATCH"
+              APPROVER="$MATCH"
+              break
+            fi
+          done
+
+          if [[ -z "$APPROVER" ]]; then
+            echo "No approval found for workflow_run_id: $WORKFLOW_RUN_ID"
+            exit 1
+          fi
+
+          echo "approver=$APPROVER" >> $GITHUB_OUTPUT
+          echo "### Approval Actor for production: $APPROVER" >> $GITHUB_STEP_SUMMARY
