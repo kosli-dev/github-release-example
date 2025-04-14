@@ -128,9 +128,9 @@ jobs:
     needs: deploy-stage
     runs-on: ubuntu-latest
     steps:
-      - name: Get workflow run ID
-        id: get-run-id
-        run: echo "workflow_run_id=${{ github.run_id }}" >> $GITHUB_ENV
+#      - name: Get workflow run ID
+#        id: get-run-id
+#        run: echo "workflow_run_id=${{ github.run_id }}" >> $GITHUB_ENV
 
       - name: Get approval actor from audit log
         id: get-approver
@@ -138,7 +138,7 @@ jobs:
           GH_TOKEN: ${{ secrets.READ_AUDIT_LOG }}
           OWNER: kosli-dev
           REPO: github-release-example
-          WORKFLOW_RUN_ID: ${{ github.run_id }}
+#          WORKFLOW_RUN_ID: ${{ github.run_id }}
         run: |
           API_URL="https://api.github.com/orgs/${OWNER}/audit-log"
           MAX_PAGES=5
@@ -156,9 +156,7 @@ jobs:
               --data-urlencode "page=${PAGE}" \
               "$API_URL" > audit.json
 
-            cat audit.json >> $GITHUB_STEP_SUMMARY
-
-            MATCH=$(jq -r --arg run_id "$WORKFLOW_RUN_ID" '
+            MATCH=$(jq -r --arg run_id ${{ github.run_id }} '
               .[] | select(.workflow_run_id == ($run_id | tonumber)) | .actor' audit.json)
 
             if [[ -n "$MATCH" ]]; then
@@ -175,19 +173,6 @@ jobs:
 
           echo "approver=$APPROVER" >> $GITHUB_OUTPUT
           echo "### Approval Actor: $APPROVER" >> $GITHUB_STEP_SUMMARY
-
-          cat audit.json >> $GITHUB_STEP_SUMMARY
-
-#          APPROVER=$(jq -r --arg run_id "$WORKFLOW_RUN_ID" '
-#            map(select(.workflow_run_id | tostring == $run_id))
-#            | sort_by(.created_at)
-#            | reverse
-#            | .[0].actor // "unknown"
-#          ' audit.json)
-#
-#          echo "Approver: $APPROVER"
-#          echo "approver=$APPROVER" >> $GITHUB_OUTPUT
-
 
   semver-tag:
     needs: [build,deploy-stage]
@@ -225,7 +210,6 @@ jobs:
             -H "Authorization: Bearer $GITHUB_TOKEN" \
             -H "Content-Type: application/json" \
             -d "$JSON_PAYLOAD"
-
 
 
   assert-artifact:
