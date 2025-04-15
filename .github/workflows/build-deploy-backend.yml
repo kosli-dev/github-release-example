@@ -130,7 +130,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Get approval actor from audit log
+      - name: Get approver from audit log
         id: get-approver
         uses: ./.github/actions/get-github-workflow-approver
         with:
@@ -214,11 +214,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Get approval actor from audit log
+      - name: Get approver from audit log
         id: get-approver
         uses: ./.github/actions/get-github-workflow-approver
         with:
           gh-audit-log-reader-token: ${{ secrets.READ_AUDIT_LOG }}
+
+      - name: Setup Kosli cli
+        uses: kosli-dev/setup-cli-action@v2
+        with:
+          version:
+            ${{ env.KOSLI_CLI_VERSION }}
 
       - name: Report approval to kosli
         run: |
