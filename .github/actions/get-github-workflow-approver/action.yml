@@ -1,0 +1,69 @@
+name: Get GitHub Workflow approver
+
+# Gets the name of the person who has approved a workflow job
+# This is typically used to get the person who approved
+# deployment to an environment
+# The token needs access to the organizations audit-log
+# Go to the Developer's GitHub profile
+#   -> Settings
+#   -> Developer settings
+#   -> Personal access tokens
+#   -> New fine-grained personal access token
+#   -> Generate new token
+# Token name: github-release-example-audit-log
+# Resource owner: kosli-dev
+# Expiration: one year
+# Description: Read audit log
+# Repository access: Only select repositories - kosli-dev/github-release-example
+# Permissions:
+#   Organization permissions - Administration - Access: Read-only
+
+inputs:
+  gh-audit-log-reader-token:
+    description: "GitHub token that gives you access to read the audit-log of the organization"
+    required: true
+
+outputs:
+  approver:
+    description: "Name of approver"
+    value: ${{ steps.get-approver.outputs.approver }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Get approval actor from audit log
+      id: get-approver
+      shell: bash
+      run: |
+        API_URL="https://api.github.com/orgs/${{ github.repository_owner }}/audit-log"
+        MAX_PAGES=5
+        PER_PAGE=5
+        APPROVER=""
+
+        for PAGE in $(seq 1 $MAX_PAGES); do
+          echo "Checking page $PAGE..."
+          curl -s -H "Authorization: Bearer ${{ inputs.gh-audit-log-reader-token }}" \
+            -H "Accept: application/vnd.github+json" \
+            --get \
+            --data-urlencode "phrase=repo:${{ github.repository }}" \
+            --data-urlencode "phrase=action:workflows.approve_workflow_job" \
+            --data-urlencode "per_page=${PER_PAGE}" \
+            --data-urlencode "page=${PAGE}" \
+            "$API_URL" > audit.json
+
+          MATCH=$(jq -r --arg run_id ${{ github.run_id }} '
+            .[] | select(.workflow_run_id == ($run_id | tonumber)) | .actor' audit.json)
+
+          if [[ -n "$MATCH" ]]; then
+            echo "Found matching approval by: $MATCH"
+            APPROVER="$MATCH"
+            break
+          fi
+        done
+
+        if [[ -z "$APPROVER" ]]; then
+          echo "No approval found for workflow_run_id: $WORKFLOW_RUN_ID"
+          exit 1
+        fi
+
+        echo "approver=$APPROVER" >> $GITHUB_OUTPUT
