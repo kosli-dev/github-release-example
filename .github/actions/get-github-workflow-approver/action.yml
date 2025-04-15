@@ -27,6 +27,9 @@ outputs:
   approver:
     description: "Name of approver"
     value: ${{ steps.get-approver.outputs.approver }}
+  approval-json-file:
+    description: "GitHub approval json file"
+    value: ${{ steps.get-approver.outputs.approval-json-file }}
 
 runs:
   using: "composite"
@@ -37,7 +40,7 @@ runs:
       run: |
         API_URL="https://api.github.com/orgs/${{ github.repository_owner }}/audit-log"
         MAX_PAGES=5
-        PER_PAGE=5
+        PER_PAGE=1
         APPROVER=""
 
         for PAGE in $(seq 1 $MAX_PAGES); do
@@ -67,3 +70,4 @@ runs:
         fi
 
         echo "approver=$APPROVER" >> $GITHUB_OUTPUT
+        echo "approval-json-file=audit.json" >> $GITHUB_OUTPUT
