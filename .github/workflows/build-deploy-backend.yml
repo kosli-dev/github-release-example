@@ -139,7 +139,6 @@ jobs:
       - name: Debug
         run: |
           echo "### Approval Actor for stage: ${{ steps.get-approver.outputs.approver }}" >> $GITHUB_STEP_SUMMARY
-          cat ${{ steps.get-approver.outputs.approval-json-file }} >>  $GITHUB_STEP_SUMMARY
 
   semver-tag:
     needs: [build,deploy-stage]
@@ -223,8 +222,6 @@ jobs:
 
       - name: Report approval to kosli
         run: |
-          source scripts/lib-jira.sh
-
           kosli attest custom \
             --type=approval-github-workflow \
             --name release-approval \
@@ -232,3 +229,5 @@ jobs:
             --trail ${{ needs.setup.outputs.kosli-trail }} \
             --attestation-data ${{ steps.get-approver.outputs.approval-json-file }} \
             --annotate Approver="${{ steps.get-approver.outputs.approver }}"
+
+          echo "### Approval Actor for production: ${{ steps.get-approver.outputs.approver }}" >> $GITHUB_STEP_SUMMARY
