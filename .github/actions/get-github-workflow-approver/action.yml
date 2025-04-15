@@ -40,7 +40,7 @@ runs:
       run: |
         API_URL="https://api.github.com/orgs/${{ github.repository_owner }}/audit-log"
         MAX_PAGES=5
-        PER_PAGE=1
+        PER_PAGE=5
         APPROVER=""
 
         for PAGE in $(seq 1 $MAX_PAGES); do
@@ -53,16 +53,20 @@ runs:
             --data-urlencode "per_page=${PER_PAGE}" \
             --data-urlencode "page=${PAGE}" \
             "$API_URL" > audit.json
-
-          MATCH=$(jq -r --arg run_id ${{ github.run_id }} '
-            .[] | select(.workflow_run_id == ($run_id | tonumber)) | .actor' audit.json)
-
-          if [[ -n "$MATCH" ]]; then
-            echo "Found matching approval by: $MATCH"
-            APPROVER="$MATCH"
+        
+          MATCH_ENTRY=$(jq -r --arg run_id ${{ github.run_id }} '
+            .[] | select(.workflow_run_id == ($run_id | tonumber))' audit.json)
+        
+          if [[ -n "$MATCH_ENTRY" ]]; then
+            echo "Found matching approval:"
+            echo "$MATCH_ENTRY" | jq .
+            echo "$MATCH_ENTRY" > approver.json
+        
+            APPROVER=$(echo "$MATCH_ENTRY" | jq -r .actor)
             break
           fi
         done
+
 
         if [[ -z "$APPROVER" ]]; then
           echo "No approval found for workflow_run_id: $WORKFLOW_RUN_ID"
@@ -70,4 +74,4 @@ runs:
         fi
 
         echo "approver=$APPROVER" >> $GITHUB_OUTPUT
-        echo "approval-json-file=audit.json" >> $GITHUB_OUTPUT
+        echo "approval-json-file=approver.json" >> $GITHUB_OUTPUT
