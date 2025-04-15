@@ -128,6 +128,8 @@ jobs:
     needs: deploy-stage
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+
       - name: Get approval actor from audit log
         id: get-approver
         uses: ./.github/actions/get-github-workflow-approver
