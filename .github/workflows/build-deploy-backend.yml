@@ -209,7 +209,7 @@ jobs:
     secrets: inherit
 
   get-approver-for-production:
-    needs: [setup, deploy-production]
+    needs: [setup, build, deploy-production]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -233,6 +233,7 @@ jobs:
             --name release-approval \
             --flow ${{ env.KOSLI_FLOW }} \
             --trail ${{ needs.setup.outputs.kosli-trail }} \
+            --fingerprint ${{ needs.build.outputs.fingerprint }} \
             --attestation-data ${{ steps.get-approver.outputs.approval-json-file }} \
             --annotate Approver="${{ steps.get-approver.outputs.approver }}"
 
