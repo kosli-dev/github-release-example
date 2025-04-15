@@ -210,7 +210,7 @@ jobs:
     secrets: inherit
 
   get-approver-for-production:
-    needs: deploy-production
+    needs: [setup, deploy-production]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -221,4 +221,14 @@ jobs:
         with:
           gh-audit-log-reader-token: ${{ secrets.READ_AUDIT_LOG }}
 
+      - name: Report approval to kosli
+        run: |
+          source scripts/lib-jira.sh
 
+          kosli attest custom \
+            --type=approval-github-workflow \
+            --name release-approval \
+            --flow ${{ env.KOSLI_FLOW }} \
+            --trail ${{ needs.setup.outputs.kosli-trail }} \
+            --attestation-data ${{ steps.get-approver.outputs.approval-json-file }} \
+            --annotate Approver="${{ steps.get-approver.outputs.approver }}"
