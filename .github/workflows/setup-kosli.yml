@@ -33,19 +33,11 @@ jobs:
             --template-file kosli-flow-templates/backend-template.yml
 
 
-#      ### Custom attestation types ###
-#      - name: Create veracode-scan-executed attestation type
-#        run:
-#          kosli create attestation-type veracode-scan-executed
-#              --description "Attest that veracode scan was executed"
-#              --schema custom-attestation-types/veracode-scan-schema.json
-#              --jq '.scan_status == "SUCCESS"'
-#
-#      - name: Create veracode-scan-vulnerability-summary attestation type
-#        run:
-#          kosli create attestation-type veracode-scan-vulnerability-summary
-#              --description "Attest that veracode scan has no vulnerabilities"
-#              --schema custom-attestation-types/veracode-scan-schema.json
-#              --jq '.scan_status == "SUCCESS"'
-#              --jq 'all(.severity_summary[]; . == 0)'
-#              --jq 'all(.gob_summary[]; . == 0)'
+      ### Custom attestation types ###
+      - name: Create approval-github-workflow attestation type
+        run:
+          kosli create attestation-type approval-github-workflow
+              --description "Approval from GitHub workflow"
+              --schema custom-attestation-types/approval-github-workflow.yml
+              --jq '.action == "workflows.approve_workflow_job"'
+              --jq '.actor != ""'

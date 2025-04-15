@@ -139,7 +139,6 @@ jobs:
       - name: Debug
         run: |
           echo "### Approval Actor for stage: ${{ steps.get-approver.outputs.approver }}" >> $GITHUB_STEP_SUMMARY
-          cat ${{ steps.get-approver.outputs.approval-json-file }} >>  $GITHUB_STEP_SUMMARY
 
   semver-tag:
     needs: [build,deploy-stage]
@@ -210,7 +209,7 @@ jobs:
     secrets: inherit
 
   get-approver-for-production:
-    needs: deploy-production
+    needs: [setup, deploy-production]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -221,4 +220,14 @@ jobs:
         with:
           gh-audit-log-reader-token: ${{ secrets.READ_AUDIT_LOG }}
 
+      - name: Report approval to kosli
+        run: |
+          kosli attest custom \
+            --type=approval-github-workflow \
+            --name release-approval \
+            --flow ${{ env.KOSLI_FLOW }} \
+            --trail ${{ needs.setup.outputs.kosli-trail }} \
+            --attestation-data ${{ steps.get-approver.outputs.approval-json-file }} \
+            --annotate Approver="${{ steps.get-approver.outputs.approver }}"
 
+          echo "### Approval Actor for production: ${{ steps.get-approver.outputs.approver }}" >> $GITHUB_STEP_SUMMARY
