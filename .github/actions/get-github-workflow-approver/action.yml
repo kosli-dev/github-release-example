@@ -53,9 +53,12 @@ runs:
             --data-urlencode "per_page=${PER_PAGE}" \
             --data-urlencode "page=${PAGE}" \
             "$API_URL" > audit.json
-        
+
           MATCH_ENTRY=$(jq -r --arg run_id ${{ github.run_id }} '
-            .[] | select(.workflow_run_id == ($run_id | tonumber))' audit.json)
+            [.[] | select(.workflow_run_id == ($run_id | tonumber))] 
+            | sort_by(."@timestamp") 
+            | last
+          ' audit.json)
         
           if [[ -n "$MATCH_ENTRY" ]]; then
             echo "Found matching approval:"
@@ -66,7 +69,6 @@ runs:
             break
           fi
         done
-
 
         if [[ -z "$APPROVER" ]]; then
           echo "No approval found for workflow_run_id: $WORKFLOW_RUN_ID"
