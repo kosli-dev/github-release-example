@@ -21,6 +21,7 @@ env:
   KOSLI_API_TOKEN: "${{ secrets.KOSLI_PUBLIC_API_TOKEN }}"
   KOSLI_CLI_VERSION: "${{ vars.KOSLI_CLI_VERSION }}"
   KOSLI_TEMPLATE_FILE: "kosli-flow-templates/backend-template.yml"
+  KOSLI_TEMPLATE_RELEASE_FILE: "kosli-flow-templates/backend-release-template.yml"
   KOSLI_ENV_PROD: "github-release-example-prod"
 
   # KOSLI_DRY_RUN: true
@@ -42,8 +43,10 @@ jobs:
         run: |
           if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
             echo "kosli-trail=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+            echo "TEMPLATE_FILE=${{ env.KOSLI_TEMPLATE_RELEASE_FILE }}" >> $GITHUB_ENV
           else
             echo "kosli-trail=${GITHUB_SHA}" >> $GITHUB_OUTPUT
+            echo "TEMPLATE_FILE=${{ env.KOSLI_TEMPLATE_FILE }}" >> $GITHUB_ENV
           fi
 
       - name: Begin trail
@@ -51,7 +54,7 @@ jobs:
         uses: ./.github/actions/kosli-begin-trail
         with:
           kosli-trail: ${{ steps.set-kosli-trail.outputs.kosli-trail }}
-          kosli-template-file: ${{ env.KOSLI_TEMPLATE_FILE }}
+          kosli-template-file: ${{ env.TEMPLATE_FILE }}
 
 
   build:
