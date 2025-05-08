@@ -23,11 +23,6 @@ env:
   KOSLI_TEMPLATE_FILE: "kosli-flow-templates/backend-template.yml"
   KOSLI_ENV_PROD: "github-release-example-prod"
 
-  # KOSLI_DRY_RUN: true
-  JIRA_BASE_URL: "${{ vars.JIRA_BASE_URL }}"
-  JIRA_USERNAME: ${{ secrets.KOSLI_JIRA_USERNAME }}
-  JIRA_API_TOKEN: ${{ secrets.KOSLI_JIRA_API_TOKEN }}
-
 jobs:
   setup:
     name: Begin trail
