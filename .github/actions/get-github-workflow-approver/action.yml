@@ -40,13 +40,13 @@ runs:
         
         echo "Approvals response:"
         cat approvals.json | jq .
-        
-        # Extract the user who approved the specified environment
-        APPROVAL_ENTRY=$(jq -r --arg env "${{ inputs.environment-name }}" \
-          '.[] | select(.environments[].name == $env)' \
-          approvals.json | head -1)
-        
-        if [[ -z "$APPROVAL_ENTRY" ]]; then
+
+        # Extract the approval entry for the specified environment
+        APPROVAL_ENTRY=$(jq --arg env "${{ inputs.environment-name }}" \
+          'map(select(.environments[]?.name == $env)) | first' \
+          approvals.json)
+
+        if [[ -z "$APPROVAL_ENTRY" || "$APPROVAL_ENTRY" == "null" ]]; then
           echo "No approval found for environment: ${{ inputs.environment-name }}"
           exit 1
         fi
