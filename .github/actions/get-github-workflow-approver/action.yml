@@ -3,9 +3,6 @@ name: Get GitHub Workflow approver
 # Gets the name of the person who has approved a workflow job
 # This is typically used to get the person who approved
 # deployment to an environment
-#
-# Uses the GitHub Actions approvals API which only requires
-# the default GITHUB_TOKEN with actions:read permission
 
 inputs:
   environment-name:
