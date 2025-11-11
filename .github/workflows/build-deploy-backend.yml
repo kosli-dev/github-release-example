@@ -123,46 +123,17 @@ jobs:
     needs: deploy-stage
     runs-on: ubuntu-latest
     steps:
-      - name: Get approver from approvals API
+      - uses: actions/checkout@v4
+
+      - name: Get approver from audit log
         id: get-approver
-        run: |
-          # Get approvals for this specific run
-          APPROVALS=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-            "https://api.github.com/repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/approvals")
-
-          echo "Approvals response:"
-          echo "$APPROVALS" | jq .
-
-          # Extract the user who approved the Stage environment
-          APPROVER=$(echo "$APPROVALS" | jq -r '.[] | select(.environments[].name == "Stage") | .user.login' | head -1)
-
-          if [ -z "$APPROVER" ]; then
-            APPROVER="unknown"
-          fi
-
-          echo "approver=${APPROVER}" >> $GITHUB_OUTPUT
+        uses: ./.github/actions/get-github-workflow-approver
+        with:
+          environment-name: Stage
 
       - name: Debug
         run: |
           echo "### Approval Actor for stage: ${{ steps.get-approver.outputs.approver }}" >> $GITHUB_STEP_SUMMARY
-          echo "Triggered by: ${{ github.triggering_actor }}" >> $GITHUB_STEP_SUMMARY
-          echo "Current actor: ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
-
-#  get-approver-for-stage:
-#    needs: deploy-stage
-#    runs-on: ubuntu-latest
-#    steps:
-#      - uses: actions/checkout@v4
-#
-#      - name: Get approver from audit log
-#        id: get-approver
-#        uses: ./.github/actions/get-github-workflow-approver
-#        with:
-#          gh-audit-log-reader-token: ${{ secrets.READ_AUDIT_LOG }}
-#
-#      - name: Debug
-#        run: |
-#          echo "### Approval Actor for stage: ${{ steps.get-approver.outputs.approver }}" >> $GITHUB_STEP_SUMMARY
 
   semver-tag:
     needs: [build,deploy-stage]
@@ -242,7 +213,7 @@ jobs:
         id: get-approver
         uses: ./.github/actions/get-github-workflow-approver
         with:
-          gh-audit-log-reader-token: ${{ secrets.READ_AUDIT_LOG }}
+          environment-name: Production
 
       - name: Setup Kosli cli
         uses: kosli-dev/setup-cli-action@v2
