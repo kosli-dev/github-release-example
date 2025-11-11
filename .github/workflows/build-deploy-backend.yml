@@ -123,19 +123,23 @@ jobs:
     needs: deploy-stage
     runs-on: ubuntu-latest
     steps:
-      - name: Get approver from workflow run
+      - name: Get approver from approvals API
         id: get-approver
         run: |
-          # Get pending deployments/approvals for this run
+          # Get approvals for this specific run
           APPROVALS=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-            "https://api.github.com/repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/pending_deployments")
-          
+            "https://api.github.com/repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/approvals")
+
           echo "Approvals response:"
           echo "$APPROVALS" | jq .
-          
-          # Extract the reviewer who approved (if available in response)
-          APPROVER=$(echo "$APPROVALS" | jq -r '.[0].reviewers[0].reviewer.login // "${{ github.actor }}"')
-          
+
+          # Extract the user who approved the Stage environment
+          APPROVER=$(echo "$APPROVALS" | jq -r '.[] | select(.environments[].name == "Stage") | .user.login' | head -1)
+
+          if [ -z "$APPROVER" ]; then
+            APPROVER="unknown"
+          fi
+
           echo "approver=${APPROVER}" >> $GITHUB_OUTPUT
 
       - name: Debug
