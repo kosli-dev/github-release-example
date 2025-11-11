@@ -1,88 +1,128 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "GitHub Audit Log Approval Entry",
+  "title": "GitHub Workflow Approval Entry",
   "type": "object",
   "properties": {
-    "@timestamp": {
-      "type": "integer",
-      "description": "Timestamp in milliseconds since epoch"
+    "user": {
+      "type": "object",
+      "properties": {
+        "login": {
+          "type": "string",
+          "description": "GitHub username of the approver"
+        },
+        "id": {
+          "type": "integer",
+          "description": "GitHub user ID"
+        },
+        "node_id": {
+          "type": "string"
+        },
+        "avatar_url": {
+          "type": "string"
+        },
+        "gravatar_id": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        },
+        "html_url": {
+          "type": "string"
+        },
+        "followers_url": {
+          "type": "string"
+        },
+        "following_url": {
+          "type": "string"
+        },
+        "gists_url": {
+          "type": "string"
+        },
+        "starred_url": {
+          "type": "string"
+        },
+        "subscriptions_url": {
+          "type": "string"
+        },
+        "organizations_url": {
+          "type": "string"
+        },
+        "repos_url": {
+          "type": "string"
+        },
+        "events_url": {
+          "type": "string"
+        },
+        "received_events_url": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string",
+          "enum": ["User", "Bot"]
+        },
+        "user_view_type": {
+          "type": "string"
+        },
+        "site_admin": {
+          "type": "boolean"
+        }
+      },
+      "required": ["login", "id", "type"]
     },
-    "_document_id": {
-      "type": "string"
-    },
-    "action": {
+    "state": {
       "type": "string",
-      "enum": ["workflows.approve_workflow_job"]
+      "enum": ["approved", "rejected"],
+      "description": "Approval state"
     },
-    "actor": {
-      "type": "string"
-    },
-    "actor_id": {
-      "type": "integer"
-    },
-    "actor_is_bot": {
-      "type": "boolean"
-    },
-    "business": {
-      "type": "string"
-    },
-    "business_id": {
-      "type": "integer"
-    },
-    "created_at": {
-      "type": "integer",
-      "description": "Timestamp in milliseconds since epoch"
-    },
-    "operation_type": {
+    "comment": {
       "type": "string",
-      "enum": ["modify"]
+      "description": "Optional comment provided with the approval"
     },
-    "org": {
-      "type": "string"
-    },
-    "org_id": {
-      "type": "integer"
-    },
-    "public_repo": {
-      "type": "boolean"
-    },
-    "repo": {
-      "type": "string"
-    },
-    "repo_id": {
-      "type": "integer"
-    },
-    "request_access_security_header": {
-      "type": ["string", "null"]
-    },
-    "run_number": {
-      "type": "integer"
-    },
-    "user_agent": {
-      "type": "string"
-    },
-    "workflow_run_id": {
-      "type": "integer"
+    "environments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Environment ID"
+          },
+          "node_id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string",
+            "description": "Environment name (e.g., 'Stage', 'Production')"
+          },
+          "url": {
+            "type": "string"
+          },
+          "html_url": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 timestamp"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 timestamp"
+          },
+          "can_admins_bypass": {
+            "type": "boolean"
+          }
+        },
+        "required": ["id", "name", "created_at", "updated_at"]
+      },
+      "minItems": 1
     }
   },
   "required": [
-    "@timestamp",
-    "_document_id",
-    "action",
-    "actor",
-    "actor_id",
-    "actor_is_bot",
-    "business",
-    "business_id",
-    "created_at",
-    "operation_type",
-    "org",
-    "org_id",
-    "public_repo",
-    "repo",
-    "repo_id",
-    "run_number",
-    "user_agent",
-    "workflow_run_id"
+    "user",
+    "state",
+    "comment",
+    "environments"
   ]
 }

@@ -37,7 +37,7 @@ jobs:
       - name: Create approval-github-workflow attestation type
         run:
           kosli create attestation-type approval-github-workflow
-              --description "Approval from GitHub workflow"
-              --schema custom-attestation-types/approval-github-workflow.yml
-              --jq '.action == "workflows.approve_workflow_job"'
-              --jq '.actor != ""'
+            --description "Approval from GitHub workflow"
+            --schema custom-attestation-types/approval-github-workflow.yml
+            --jq '.state == "approved"'
+            --jq '.user.login != ""'
