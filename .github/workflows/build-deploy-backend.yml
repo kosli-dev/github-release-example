@@ -129,7 +129,7 @@ jobs:
         id: get-approver
         uses: ./.github/actions/get-github-workflow-approver
         with:
-          gh-audit-log-reader-token: ${{ secrets.READ_AUDIT_LOG }}
+          environment-name: Stage
 
       - name: Debug
         run: |
@@ -213,7 +213,7 @@ jobs:
         id: get-approver
         uses: ./.github/actions/get-github-workflow-approver
         with:
-          gh-audit-log-reader-token: ${{ secrets.READ_AUDIT_LOG }}
+          environment-name: Production
 
       - name: Setup Kosli cli
         uses: kosli-dev/setup-cli-action@v2
