@@ -123,17 +123,42 @@ jobs:
     needs: deploy-stage
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Get approver from audit log
+      - name: Get approver from workflow run
         id: get-approver
-        uses: ./.github/actions/get-github-workflow-approver
-        with:
-          gh-audit-log-reader-token: ${{ secrets.READ_AUDIT_LOG }}
+        run: |
+          # Get pending deployments/approvals for this run
+          APPROVALS=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/pending_deployments")
+          
+          echo "Approvals response:"
+          echo "$APPROVALS" | jq .
+          
+          # Extract the reviewer who approved (if available in response)
+          APPROVER=$(echo "$APPROVALS" | jq -r '.[0].reviewers[0].reviewer.login // "${{ github.actor }}"')
+          
+          echo "approver=${APPROVER}" >> $GITHUB_OUTPUT
 
       - name: Debug
         run: |
           echo "### Approval Actor for stage: ${{ steps.get-approver.outputs.approver }}" >> $GITHUB_STEP_SUMMARY
+          echo "Triggered by: ${{ github.triggering_actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "Current actor: ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+
+#  get-approver-for-stage:
+#    needs: deploy-stage
+#    runs-on: ubuntu-latest
+#    steps:
+#      - uses: actions/checkout@v4
+#
+#      - name: Get approver from audit log
+#        id: get-approver
+#        uses: ./.github/actions/get-github-workflow-approver
+#        with:
+#          gh-audit-log-reader-token: ${{ secrets.READ_AUDIT_LOG }}
+#
+#      - name: Debug
+#        run: |
+#          echo "### Approval Actor for stage: ${{ steps.get-approver.outputs.approver }}" >> $GITHUB_STEP_SUMMARY
 
   semver-tag:
     needs: [build,deploy-stage]
